@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Download, Trash2 } from "lucide-react"; // <-- NEW IMPORT
 
 // Define the structure of our saved reports
 interface Report {
@@ -95,6 +96,36 @@ export default function Home() {
     const updated = history.filter((report) => report.id !== id);
     setHistory(updated);
     localStorage.setItem("attachready_v2_history", JSON.stringify(updated));
+  };
+
+  const downloadPDF = (report: Report) => {
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>AttachReady Report - ${report.targetRole}</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #18181b; max-width: 800px; margin: 0 auto; padding: 40px; }
+              h1 { color: #0f766e; margin-bottom: 5px; }
+              h2 { color: #27272a; margin-top: 0; }
+              .date { color: #71717a; font-size: 0.9rem; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e4e4e7; }
+              pre { font-family: inherit; white-space: pre-wrap; font-size: 0.95rem; }
+            </style>
+          </head>
+          <body>
+            <h1>AttachReady Readiness Report</h1>
+            <h2>Target Role: ${report.targetRole}</h2>
+            <div class="date">Generated on: ${report.date}</div>
+            <pre>${report.content}</pre>
+            <script>
+              window.onload = () => { window.print(); window.close(); }
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
   };
 
   return (
@@ -248,13 +279,25 @@ export default function Home() {
                         {report.date}
                       </CardDescription>
                     </div>
-                    <Button
-                      variant="ghost"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => deleteReport(report.id)}
-                    >
-                      Delete
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 border-teal-200"
+                        onClick={() => downloadPDF(report)}
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Save PDF
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => deleteReport(report.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-6">
                     <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-700 leading-relaxed">
