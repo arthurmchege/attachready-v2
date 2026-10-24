@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,6 +13,54 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setResult("");
+
+    const formData = new FormData();
+
+    // Safely grab values from the DOM
+    const roleInput = document.getElementById("targetRole") as HTMLInputElement;
+    const courseInput = document.getElementById("course") as HTMLInputElement;
+    const skillsInput = document.getElementById(
+      "skills",
+    ) as HTMLTextAreaElement;
+    const fileInput = document.getElementById("cvUpload") as HTMLInputElement;
+
+    formData.append("target_role", roleInput?.value || "");
+    formData.append("course", courseInput?.value || "");
+    formData.append("skills", skillsInput?.value || "");
+
+    if (fileInput?.files?.[0]) {
+      formData.append("cv_upload", fileInput.files[0]);
+    }
+
+    try {
+      // Send data to the FastAPI backend
+      const response = await fetch("http://127.0.0.1:8000/api/assess", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setResult(data.report);
+      } else {
+        alert("Error: " + data.detail);
+      }
+    } catch (error) {
+      alert(
+        "Network error connecting to backend. Ensure your FastAPI server is running.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 selection:bg-teal-200 font-sans">
       {/* Navbar */}
@@ -67,64 +118,88 @@ export default function Home() {
             </CardHeader>
 
             <CardContent className="space-y-8 p-6 md:p-10">
-              {/* File Upload Upgrade */}
-              <div className="space-y-3 p-8 border-2 border-dashed border-zinc-200 rounded-xl bg-zinc-50 text-center hover:bg-zinc-100 transition-colors">
-                <p className="text-md font-semibold text-zinc-800">
-                  🚀 Fast Track: Upload your CV (PDF)
-                </p>
-                <p className="text-sm text-zinc-500 mb-4 max-w-sm mx-auto">
-                  Skip the typing. We will automatically extract your skills and
-                  project experience using AI.
-                </p>
-                <Input
-                  type="file"
-                  accept=".pdf"
-                  className="max-w-xs mx-auto cursor-pointer bg-white"
-                />
-              </div>
-
-              <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-zinc-200"></div>
-                <span className="flex-shrink-0 mx-4 text-zinc-400 text-sm font-medium tracking-widest">
-                  OR ENTER MANUALLY
-                </span>
-                <div className="flex-grow border-t border-zinc-200"></div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-zinc-700">
-                    Target Role <span className="text-red-500">*</span>
-                  </label>
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* File Upload Upgrade */}
+                <div className="space-y-3 p-8 border-2 border-dashed border-zinc-200 rounded-xl bg-zinc-50 text-center hover:bg-zinc-100 transition-colors">
+                  <p className="text-md font-semibold text-zinc-800">
+                    🚀 Fast Track: Upload your CV (PDF)
+                  </p>
+                  <p className="text-sm text-zinc-500 mb-4 max-w-sm mx-auto">
+                    Skip the typing. We will automatically extract your skills
+                    and project experience using AI.
+                  </p>
                   <Input
-                    placeholder="e.g., Software Engineering Intern"
-                    className="h-12 rounded-lg"
+                    id="cvUpload"
+                    type="file"
+                    accept=".pdf"
+                    className="max-w-xs mx-auto cursor-pointer bg-white"
                   />
                 </div>
+
+                <div className="relative flex items-center py-2">
+                  <div className="flex-grow border-t border-zinc-200"></div>
+                  <span className="flex-shrink-0 mx-4 text-zinc-400 text-sm font-medium tracking-widest">
+                    OR ENTER MANUALLY
+                  </span>
+                  <div className="flex-grow border-t border-zinc-200"></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-zinc-700">
+                      Target Role <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      id="targetRole"
+                      placeholder="e.g., Software Engineering Intern"
+                      className="h-12 rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-zinc-700">
+                      Course of Study <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      id="course"
+                      placeholder="e.g., Level 6 Diploma in CS"
+                      className="h-12 rounded-lg"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-zinc-700">
-                    Course of Study <span className="text-red-500">*</span>
+                    Current Technical Skills
                   </label>
-                  <Input
-                    placeholder="e.g., Level 6 Diploma in CS"
-                    className="h-12 rounded-lg"
+                  <Textarea
+                    id="skills"
+                    placeholder="e.g., Python, React, Next.js, Docker..."
+                    className="min-h-[120px] rounded-lg resize-y"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-zinc-700">
-                  Current Technical Skills
-                </label>
-                <Textarea
-                  placeholder="e.g., Python, React, Next.js, Docker..."
-                  className="min-h-[120px] rounded-lg resize-y"
-                />
-              </div>
+                <Button
+                  disabled={isLoading}
+                  type="submit"
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white text-lg font-bold py-6 rounded-xl h-14 shadow-md transition-transform active:scale-[0.98]"
+                >
+                  {isLoading ? "Analyzing..." : "Generate AI Readiness Report"}
+                </Button>
+              </form>
 
-              <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white text-lg font-bold py-6 rounded-xl h-14 shadow-md transition-transform active:scale-[0.98]">
-                Generate AI Readiness Report
-              </Button>
+              {/* Display Result directly below form temporarily */}
+              {result && (
+                <div className="mt-8 p-6 bg-zinc-50 border-l-4 border-teal-600 rounded-r-xl">
+                  <h3 className="font-bold text-xl mb-4">
+                    Your Readiness Report
+                  </h3>
+                  <pre className="whitespace-pre-wrap font-sans text-zinc-700">
+                    {result}
+                  </pre>
+                </div>
+              )}
             </CardContent>
           </Card>
         </section>
