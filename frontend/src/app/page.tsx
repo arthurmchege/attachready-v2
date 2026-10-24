@@ -16,8 +16,6 @@ import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { marked } from "marked";
 import { toast } from "sonner";
-
-// NEW: Import Dialog components
 import {
   Dialog,
   DialogContent,
@@ -37,15 +35,24 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState("");
   const [history, setHistory] = useState<Report[]>([]);
-
-  // NEW: State to control which report is open in the modal
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("attachready_v2_history");
-    if (saved) {
-      setHistory(JSON.parse(saved));
+  // NEW: Fetch history directly from the FastAPI database
+  const fetchHistory = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/history");
+      if (response.ok) {
+        const data = await response.json();
+        setHistory(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch history:", error);
     }
+  };
+
+  // Load history on initial render
+  useEffect(() => {
+    fetchHistory();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,8 +68,7 @@ export default function Home() {
     ) as HTMLTextAreaElement;
     const fileInput = document.getElementById("cvUpload") as HTMLInputElement;
 
-    const roleVal = roleInput?.value || "";
-    formData.append("target_role", roleVal);
+    formData.append("target_role", roleInput?.value || "");
     formData.append("course", courseInput?.value || "");
     formData.append("skills", skillsInput?.value || "");
 
@@ -79,21 +85,9 @@ export default function Home() {
       const data = await response.json();
       if (response.ok) {
         setResult(data.report);
-
-        const newReport: Report = {
-          id: Date.now().toString(),
-          targetRole: roleVal,
-          date: new Date().toLocaleString(),
-          content: data.report,
-        };
-
-        const updatedHistory = [newReport, ...history];
-        setHistory(updatedHistory);
-        localStorage.setItem(
-          "attachready_v2_history",
-          JSON.stringify(updatedHistory),
-        );
         toast.success("AI Readiness Report generated and saved!");
+        // Refresh the dashboard to show the newly saved report from the DB
+        fetchHistory();
       } else {
         toast.error("Error: " + data.detail);
       }
@@ -106,12 +100,23 @@ export default function Home() {
     }
   };
 
-  const deleteReport = (id: string) => {
-    const updated = history.filter((report) => report.id !== id);
-    setHistory(updated);
-    localStorage.setItem("attachready_v2_history", JSON.stringify(updated));
-    toast.info("Report deleted from history.");
-    setSelectedReport(null); // Close modal if the deleted report was open
+  // NEW: Delete the report directly from the database
+  const deleteReport = async (id: string) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/reports/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setHistory(history.filter((report) => report.id !== id));
+        toast.info("Report permanently deleted.");
+        setSelectedReport(null);
+      } else {
+        toast.error("Failed to delete report from database.");
+      }
+    } catch (error) {
+      toast.error("Network error while deleting.");
+    }
   };
 
   const downloadPDF = (report: Report) => {
@@ -155,7 +160,6 @@ export default function Home() {
     }
   };
 
-  // Reusable markdown render configuration
   const MarkdownRenderer = ({ content }: { content: string }) => (
     <ReactMarkdown
       components={{
@@ -365,7 +369,7 @@ export default function Home() {
           </Card>
         </section>
 
-        {/* History Section: Now a sleek tile grid! */}
+        {/* Dashboard Grid */}
         {history.length > 0 && (
           <section className="space-y-8 pt-12 border-t border-zinc-200">
             <div className="text-center">
@@ -404,12 +408,11 @@ export default function Home() {
         )}
       </main>
 
-      {/* Modal Dialog for viewing a specific report */}
+      {/* Modal Dialog */}
       <Dialog
         open={!!selectedReport}
         onOpenChange={(open) => !open && setSelectedReport(null)}
       >
-        {/* Added sm:max-w-4xl and w-[90vw] to make it wide but comfortable */}
         <DialogContent className="sm:max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto bg-white sm:rounded-2xl p-0">
           <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="pr-8">
@@ -441,7 +444,6 @@ export default function Home() {
               </Button>
             </div>
           </div>
-
           <div className="px-6 md:px-12 pb-12 pt-4">
             {selectedReport && (
               <MarkdownRenderer content={selectedReport.content} />
