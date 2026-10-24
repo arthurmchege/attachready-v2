@@ -15,7 +15,7 @@ import { Download, Trash2, Loader2 } from "lucide-react"; // <-- NEW IMPORT
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { marked } from "marked";
-
+import { toast } from "sonner";
 // Define the structure of our saved reports
 interface Report {
   id: string;
@@ -69,7 +69,6 @@ export default function Home() {
       if (response.ok) {
         setResult(data.report);
 
-        // Create new report object and save to history
         const newReport: Report = {
           id: Date.now().toString(),
           targetRole: roleVal,
@@ -83,13 +82,13 @@ export default function Home() {
           "attachready_v2_history",
           JSON.stringify(updatedHistory),
         );
+
+        toast.success("AI Readiness Report generated and saved!"); // <-- NEW TOAST
       } else {
-        alert("Error: " + data.detail);
+        toast.error("Error: " + data.detail); // <-- NEW TOAST
       }
     } catch (error) {
-      alert(
-        "Network error connecting to backend. Ensure your FastAPI server is running.",
-      );
+      toast.error("Network error connecting to backend."); // <-- NEW TOAST
     } finally {
       setIsLoading(false);
     }
@@ -99,9 +98,11 @@ export default function Home() {
     const updated = history.filter((report) => report.id !== id);
     setHistory(updated);
     localStorage.setItem("attachready_v2_history", JSON.stringify(updated));
+    toast.info("Report deleted from history."); // <-- NEW TOAST
   };
 
   const downloadPDF = (report: Report) => {
+    toast.success(`Preparing PDF for ${report.targetRole}...`); // <-- NEW TOAST
     // Convert the raw markdown string into formatted HTML
     const htmlContent = marked.parse(report.content) as string;
 
