@@ -100,3 +100,39 @@ async def assess(
         return {"report": response.text, "id": db_report.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/history")
+def get_history(db: Session = Depends(get_db)):
+    """Fetch all saved reports from the database, newest first."""
+    try:
+        # We order by ID descending so the newest reports appear at the top
+        reports = db.query(models.Report).order_by(models.Report.id.desc()).all()
+        
+        # Format the data to match what our Next.js frontend expects
+        formatted_reports = []
+        for r in reports:
+            formatted_reports.append({
+                "id": str(r.id),
+                "targetRole": r.target_role,
+                # Convert the datetime object to a readable string
+                "date": r.created_at.strftime("%m/%d/%Y, %I:%M:%S %p") if r.created_at else "Unknown Date",
+                "content": r.report_content
+            })
+        return formatted_reports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/reports/{report_id}")
+def delete_report(report_id: int, db: Session = Depends(get_db)):
+    """Delete a specific report from the database."""
+    report = db.query(models.Report).filter(models.Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    try:
+        db.delete(report)
+        db.commit()
+        return {"message": "Report deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
