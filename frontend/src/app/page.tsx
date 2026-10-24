@@ -11,12 +11,21 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Trash2, Loader2 } from "lucide-react"; // <-- NEW IMPORT
+import { Download, Trash2, Loader2, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { marked } from "marked";
 import { toast } from "sonner";
-// Define the structure of our saved reports
+
+// NEW: Import Dialog components
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
 interface Report {
   id: string;
   targetRole: string;
@@ -29,7 +38,9 @@ export default function Home() {
   const [result, setResult] = useState("");
   const [history, setHistory] = useState<Report[]>([]);
 
-  // Load history from local storage when the component mounts
+  // NEW: State to control which report is open in the modal
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+
   useEffect(() => {
     const saved = localStorage.getItem("attachready_v2_history");
     if (saved) {
@@ -82,13 +93,14 @@ export default function Home() {
           "attachready_v2_history",
           JSON.stringify(updatedHistory),
         );
-
-        toast.success("AI Readiness Report generated and saved!"); // <-- NEW TOAST
+        toast.success("AI Readiness Report generated and saved!");
       } else {
-        toast.error("Error: " + data.detail); // <-- NEW TOAST
+        toast.error("Error: " + data.detail);
       }
     } catch (error) {
-      toast.error("Network error connecting to backend."); // <-- NEW TOAST
+      toast.error(
+        "Network error connecting to backend. Ensure your FastAPI server is running.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -98,12 +110,12 @@ export default function Home() {
     const updated = history.filter((report) => report.id !== id);
     setHistory(updated);
     localStorage.setItem("attachready_v2_history", JSON.stringify(updated));
-    toast.info("Report deleted from history."); // <-- NEW TOAST
+    toast.info("Report deleted from history.");
+    setSelectedReport(null); // Close modal if the deleted report was open
   };
 
   const downloadPDF = (report: Report) => {
-    toast.success(`Preparing PDF for ${report.targetRole}...`); // <-- NEW TOAST
-    // Convert the raw markdown string into formatted HTML
+    toast.success(`Preparing PDF for ${report.targetRole}...`);
     const htmlContent = marked.parse(report.content) as string;
 
     const printWindow = window.open("", "_blank");
@@ -116,8 +128,6 @@ export default function Home() {
               body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #18181b; max-width: 800px; margin: 0 auto; padding: 40px; }
               h1 { color: #0f766e; margin-bottom: 5px; font-size: 28px; }
               .header-meta { color: #71717a; font-size: 0.95rem; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e4e4e7; }
-              
-              /* Markdown HTML Styles */
               h2 { color: #0f766e; margin-top: 32px; margin-bottom: 16px; font-size: 20px; border-bottom: 1px solid #ccfbf1; padding-bottom: 8px; }
               h3 { color: #18181b; margin-top: 24px; margin-bottom: 12px; font-size: 18px; }
               p { margin-bottom: 16px; color: #3f3f46; }
@@ -136,10 +146,7 @@ export default function Home() {
               ${htmlContent}
             </div>
             <script>
-              // Slight delay to ensure CSS is fully painted before opening print dialog
-              window.onload = () => { 
-                setTimeout(() => { window.print(); window.close(); }, 250); 
-              }
+              window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 250); }
             </script>
           </body>
         </html>
@@ -147,6 +154,46 @@ export default function Home() {
       printWindow.document.close();
     }
   };
+
+  // Reusable markdown render configuration
+  const MarkdownRenderer = ({ content }: { content: string }) => (
+    <ReactMarkdown
+      components={{
+        h2: ({ node, ...props }) => (
+          <h2
+            className="text-xl font-bold text-teal-800 mt-8 mb-4 border-b border-teal-100 pb-2"
+            {...props}
+          />
+        ),
+        h3: ({ node, ...props }) => (
+          <h3
+            className="text-lg font-bold text-zinc-900 mt-6 mb-3"
+            {...props}
+          />
+        ),
+        ul: ({ node, ...props }) => (
+          <ul className="list-disc pl-5 space-y-2 mb-6" {...props} />
+        ),
+        li: ({ node, ...props }) => (
+          <li
+            className="text-zinc-700 leading-relaxed marker:text-teal-500"
+            {...props}
+          />
+        ),
+        p: ({ node, ...props }) => (
+          <p className="mb-4 text-zinc-700 leading-relaxed" {...props} />
+        ),
+        strong: ({ node, ...props }) => (
+          <strong
+            className="font-semibold text-zinc-900 bg-teal-50 px-1 rounded"
+            {...props}
+          />
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 selection:bg-teal-200 font-sans pb-24">
@@ -175,7 +222,6 @@ export default function Home() {
               ✨ Powered by Google Gemini 3.5 Flash
             </span>
           </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -187,7 +233,6 @@ export default function Home() {
               Industrial Attachment.
             </span>
           </motion.h1>
-
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -198,7 +243,6 @@ export default function Home() {
             profile, identifies skill gaps, and generates a personalized 3-step
             action plan to get you hired.
           </motion.p>
-
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -216,23 +260,11 @@ export default function Home() {
             >
               Analyze My Readiness
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="rounded-full px-8 text-md h-12 border-zinc-300 hover:bg-zinc-100 transition-all"
-              onClick={() =>
-                document
-                  .getElementById("assessment")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
-            >
-              Start Free Assessment
-            </Button>
           </motion.div>
         </section>
 
         {/* Assessment Form Card */}
-        <section id="assessment">
+        <section id="assessment" className="scroll-mt-24">
           <Card className="shadow-xl border-0 ring-1 ring-zinc-200 rounded-2xl overflow-hidden bg-white">
             <CardHeader className="text-center pb-8 pt-10 bg-zinc-900 text-white">
               <CardTitle className="text-3xl font-bold">
@@ -242,7 +274,6 @@ export default function Home() {
                 No sign-up required. Get your personalized plan in seconds.
               </CardDescription>
             </CardHeader>
-
             <CardContent className="space-y-8 p-6 md:p-10">
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="space-y-3 p-8 border-2 border-dashed border-zinc-200 rounded-xl bg-zinc-50 text-center hover:bg-zinc-100 transition-colors">
@@ -260,15 +291,6 @@ export default function Home() {
                     className="max-w-xs mx-auto cursor-pointer bg-white"
                   />
                 </div>
-
-                <div className="relative flex items-center py-2">
-                  <div className="flex-grow border-t border-zinc-200"></div>
-                  <span className="flex-shrink-0 mx-4 text-zinc-400 text-sm font-medium tracking-widest">
-                    OR ENTER MANUALLY
-                  </span>
-                  <div className="flex-grow border-t border-zinc-200"></div>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-zinc-700">
@@ -293,7 +315,6 @@ export default function Home() {
                     />
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-zinc-700">
                     Current Technical Skills
@@ -304,7 +325,6 @@ export default function Home() {
                     className="min-h-[120px] rounded-lg resize-y"
                   />
                 </div>
-
                 <Button
                   disabled={isLoading}
                   type="submit"
@@ -312,8 +332,8 @@ export default function Home() {
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-                      AI is Analyzing Your Profile...
+                      <Loader2 className="w-6 h-6 mr-3 animate-spin" />{" "}
+                      Analyzing Profile...
                     </>
                   ) : (
                     "Generate AI Readiness Report"
@@ -321,73 +341,23 @@ export default function Home() {
                 </Button>
               </form>
 
-              {/* Loading Skeleton */}
               {isLoading && (
                 <div className="mt-8 p-6 bg-white border border-zinc-200 rounded-xl shadow-sm animate-pulse space-y-6">
                   <div className="h-6 bg-zinc-200 rounded-md w-1/3"></div>
                   <div className="space-y-3">
                     <div className="h-4 bg-zinc-100 rounded-md w-full"></div>
                     <div className="h-4 bg-zinc-100 rounded-md w-5/6"></div>
-                    <div className="h-4 bg-zinc-100 rounded-md w-4/6"></div>
-                  </div>
-                  <div className="h-6 bg-zinc-200 rounded-md w-1/4 mt-8"></div>
-                  <div className="space-y-3">
-                    <div className="h-4 bg-zinc-100 rounded-md w-full"></div>
-                    <div className="h-4 bg-zinc-100 rounded-md w-full"></div>
-                    <div className="h-4 bg-zinc-100 rounded-md w-3/4"></div>
                   </div>
                 </div>
               )}
 
-              {/* Display Result directly below form temporarily */}
               {result && (
                 <div className="mt-8 p-6 bg-zinc-50 border-l-4 border-teal-600 rounded-r-xl shadow-sm">
                   <h3 className="font-bold text-xl mb-6 text-zinc-900">
                     Your AI Readiness Report
                   </h3>
                   <div className="font-sans">
-                    <ReactMarkdown
-                      components={{
-                        h2: ({ node, ...props }) => (
-                          <h2
-                            className="text-xl font-bold text-teal-800 mt-8 mb-4 border-b border-teal-100 pb-2"
-                            {...props}
-                          />
-                        ),
-                        h3: ({ node, ...props }) => (
-                          <h3
-                            className="text-lg font-bold text-zinc-900 mt-6 mb-3"
-                            {...props}
-                          />
-                        ),
-                        ul: ({ node, ...props }) => (
-                          <ul
-                            className="list-disc pl-5 space-y-2 mb-6"
-                            {...props}
-                          />
-                        ),
-                        li: ({ node, ...props }) => (
-                          <li
-                            className="text-zinc-700 leading-relaxed marker:text-teal-500"
-                            {...props}
-                          />
-                        ),
-                        p: ({ node, ...props }) => (
-                          <p
-                            className="mb-4 text-zinc-700 leading-relaxed"
-                            {...props}
-                          />
-                        ),
-                        strong: ({ node, ...props }) => (
-                          <strong
-                            className="font-semibold text-zinc-900 bg-teal-50 px-1 rounded"
-                            {...props}
-                          />
-                        ),
-                      }}
-                    >
-                      {result}
-                    </ReactMarkdown>
+                    <MarkdownRenderer content={result} />
                   </div>
                 </div>
               )}
@@ -395,61 +365,89 @@ export default function Home() {
           </Card>
         </section>
 
-        {/* History Section */}
+        {/* History Section: Now a sleek tile grid! */}
         {history.length > 0 && (
-          <section className="space-y-6 pt-12 border-t border-zinc-200">
-            <h2 className="text-2xl font-bold text-zinc-900 text-center">
-              Your Saved Reports
-            </h2>
-            <p className="text-center text-zinc-500 text-sm">
-              Reports are saved locally in your browser.
-            </p>
-            <div className="space-y-6">
+          <section className="space-y-8 pt-12 border-t border-zinc-200">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-zinc-900">
+                Your Dashboard
+              </h2>
+              <p className="text-zinc-500 text-sm mt-2">
+                Click any saved report to view, export, or manage it.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {history.map((report) => (
                 <Card
                   key={report.id}
-                  className="shadow-sm border border-zinc-200 bg-white"
+                  className="cursor-pointer group hover:border-teal-500 hover:shadow-md transition-all duration-200 bg-white"
+                  onClick={() => setSelectedReport(report)}
                 >
-                  <CardHeader className="bg-zinc-50 border-b border-zinc-100 flex flex-row justify-between items-center py-4">
-                    <div>
-                      <CardTitle className="text-lg font-semibold text-zinc-800">
-                        {report.targetRole}
-                      </CardTitle>
-                      <CardDescription className="text-xs mt-1">
-                        {report.date}
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 border-teal-200"
-                        onClick={() => downloadPDF(report)}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Save PDF
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => deleteReport(report.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                  <CardHeader className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1.5">
+                        <CardTitle className="text-lg font-bold text-zinc-800 group-hover:text-teal-700 transition-colors line-clamp-2">
+                          {report.targetRole}
+                        </CardTitle>
+                        <CardDescription className="flex items-center text-xs text-zinc-500">
+                          <FileText className="w-3 h-3 mr-1.5" />
+                          {report.date.split(",")[0]}
+                        </CardDescription>
+                      </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-6">
-                    <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-700 leading-relaxed">
-                      {report.content}
-                    </pre>
-                  </CardContent>
                 </Card>
               ))}
             </div>
           </section>
         )}
       </main>
+
+      {/* Modal Dialog for viewing a specific report */}
+      <Dialog
+        open={!!selectedReport}
+        onOpenChange={(open) => !open && setSelectedReport(null)}
+      >
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white sm:rounded-2xl p-0">
+          <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <DialogTitle className="text-2xl font-bold text-zinc-900">
+                {selectedReport?.targetRole}
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-sm text-zinc-500">
+                Generated on {selectedReport?.date}
+              </DialogDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-teal-700 border-teal-200 hover:bg-teal-50"
+                onClick={() => selectedReport && downloadPDF(selectedReport)}
+              >
+                <Download className="w-4 h-4 mr-2" /> Export
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                onClick={() =>
+                  selectedReport && deleteReport(selectedReport.id)
+                }
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="px-6 md:px-10 pb-10">
+            {selectedReport && (
+              <MarkdownRenderer content={selectedReport.content} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
