@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Trash2 } from "lucide-react"; // <-- NEW IMPORT
+import { Download, Trash2, Loader2 } from "lucide-react"; // <-- NEW IMPORT
 import { motion } from "framer-motion";
 
 // Define the structure of our saved reports
@@ -289,11 +289,36 @@ export default function Home() {
                 <Button
                   disabled={isLoading}
                   type="submit"
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white text-lg font-bold py-6 rounded-xl h-14 shadow-md transition-transform active:scale-[0.98]"
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white text-lg font-bold py-6 rounded-xl h-14 shadow-md transition-transform active:scale-[0.98] flex items-center justify-center"
                 >
-                  {isLoading ? "Analyzing..." : "Generate AI Readiness Report"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                      AI is Analyzing Your Profile...
+                    </>
+                  ) : (
+                    "Generate AI Readiness Report"
+                  )}
                 </Button>
               </form>
+
+              {/* Loading Skeleton */}
+              {isLoading && (
+                <div className="mt-8 p-6 bg-white border border-zinc-200 rounded-xl shadow-sm animate-pulse space-y-6">
+                  <div className="h-6 bg-zinc-200 rounded-md w-1/3"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-zinc-100 rounded-md w-full"></div>
+                    <div className="h-4 bg-zinc-100 rounded-md w-5/6"></div>
+                    <div className="h-4 bg-zinc-100 rounded-md w-4/6"></div>
+                  </div>
+                  <div className="h-6 bg-zinc-200 rounded-md w-1/4 mt-8"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-zinc-100 rounded-md w-full"></div>
+                    <div className="h-4 bg-zinc-100 rounded-md w-full"></div>
+                    <div className="h-4 bg-zinc-100 rounded-md w-3/4"></div>
+                  </div>
+                </div>
+              )}
 
               {/* Display Result directly below form temporarily */}
               {result && (
