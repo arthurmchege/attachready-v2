@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,9 +12,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+// Define the structure of our saved reports
+interface Report {
+  id: string;
+  targetRole: string;
+  date: string;
+  content: string;
+}
+
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState("");
+  const [history, setHistory] = useState<Report[]>([]);
+
+  // Load history from local storage when the component mounts
+  useEffect(() => {
+    const saved = localStorage.getItem("attachready_v2_history");
+    if (saved) {
+      setHistory(JSON.parse(saved));
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +39,6 @@ export default function Home() {
     setResult("");
 
     const formData = new FormData();
-
-    // Safely grab values from the DOM
     const roleInput = document.getElementById("targetRole") as HTMLInputElement;
     const courseInput = document.getElementById("course") as HTMLInputElement;
     const skillsInput = document.getElementById(
@@ -31,7 +46,8 @@ export default function Home() {
     ) as HTMLTextAreaElement;
     const fileInput = document.getElementById("cvUpload") as HTMLInputElement;
 
-    formData.append("target_role", roleInput?.value || "");
+    const roleVal = roleInput?.value || "";
+    formData.append("target_role", roleVal);
     formData.append("course", courseInput?.value || "");
     formData.append("skills", skillsInput?.value || "");
 
@@ -40,7 +56,6 @@ export default function Home() {
     }
 
     try {
-      // Send data to the FastAPI backend
       const response = await fetch("http://127.0.0.1:8000/api/assess", {
         method: "POST",
         body: formData,
@@ -49,6 +64,21 @@ export default function Home() {
       const data = await response.json();
       if (response.ok) {
         setResult(data.report);
+
+        // Create new report object and save to history
+        const newReport: Report = {
+          id: Date.now().toString(),
+          targetRole: roleVal,
+          date: new Date().toLocaleString(),
+          content: data.report,
+        };
+
+        const updatedHistory = [newReport, ...history];
+        setHistory(updatedHistory);
+        localStorage.setItem(
+          "attachready_v2_history",
+          JSON.stringify(updatedHistory),
+        );
       } else {
         alert("Error: " + data.detail);
       }
@@ -61,8 +91,14 @@ export default function Home() {
     }
   };
 
+  const deleteReport = (id: string) => {
+    const updated = history.filter((report) => report.id !== id);
+    setHistory(updated);
+    localStorage.setItem("attachready_v2_history", JSON.stringify(updated));
+  };
+
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 selection:bg-teal-200 font-sans">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 selection:bg-teal-200 font-sans pb-24">
       {/* Navbar */}
       <header className="px-6 py-4 border-b bg-white flex justify-between items-center sticky top-0 z-10 shadow-sm">
         <div className="font-extrabold text-xl tracking-tight text-zinc-900">
@@ -76,8 +112,8 @@ export default function Home() {
         </nav>
       </header>
 
-      {/* Hero Section */}
       <main className="max-w-4xl mx-auto px-6 py-16 md:py-24 space-y-16">
+        {/* Hero Section */}
         <section className="text-center space-y-6">
           <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-zinc-900 leading-tight">
             Land Your Dream <br className="hidden md:block" /> Industrial
@@ -88,25 +124,10 @@ export default function Home() {
             profile, identifies skill gaps, and generates a personalized 3-step
             action plan to get you hired.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-            <Button
-              size="lg"
-              className="bg-teal-600 hover:bg-teal-700 text-white rounded-full px-8 text-md h-12"
-            >
-              Analyze My Readiness
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="rounded-full px-8 text-md h-12 border-zinc-300"
-            >
-              View Example Report
-            </Button>
-          </div>
         </section>
 
         {/* Assessment Form Card */}
-        <section id="assessment" className="scroll-mt-24">
+        <section id="assessment">
           <Card className="shadow-xl border-0 ring-1 ring-zinc-200 rounded-2xl overflow-hidden bg-white">
             <CardHeader className="text-center pb-8 pt-10 bg-zinc-900 text-white">
               <CardTitle className="text-3xl font-bold">
@@ -119,7 +140,6 @@ export default function Home() {
 
             <CardContent className="space-y-8 p-6 md:p-10">
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* File Upload Upgrade */}
                 <div className="space-y-3 p-8 border-2 border-dashed border-zinc-200 rounded-xl bg-zinc-50 text-center hover:bg-zinc-100 transition-colors">
                   <p className="text-md font-semibold text-zinc-800">
                     🚀 Fast Track: Upload your CV (PDF)
@@ -195,7 +215,7 @@ export default function Home() {
                   <h3 className="font-bold text-xl mb-4">
                     Your Readiness Report
                   </h3>
-                  <pre className="whitespace-pre-wrap font-sans text-zinc-700">
+                  <pre className="whitespace-pre-wrap font-sans text-zinc-700 leading-relaxed">
                     {result}
                   </pre>
                 </div>
@@ -203,6 +223,49 @@ export default function Home() {
             </CardContent>
           </Card>
         </section>
+
+        {/* History Section */}
+        {history.length > 0 && (
+          <section className="space-y-6 pt-12 border-t border-zinc-200">
+            <h2 className="text-2xl font-bold text-zinc-900 text-center">
+              Your Saved Reports
+            </h2>
+            <p className="text-center text-zinc-500 text-sm">
+              Reports are saved locally in your browser.
+            </p>
+            <div className="space-y-6">
+              {history.map((report) => (
+                <Card
+                  key={report.id}
+                  className="shadow-sm border border-zinc-200 bg-white"
+                >
+                  <CardHeader className="bg-zinc-50 border-b border-zinc-100 flex flex-row justify-between items-center py-4">
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-zinc-800">
+                        {report.targetRole}
+                      </CardTitle>
+                      <CardDescription className="text-xs mt-1">
+                        {report.date}
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => deleteReport(report.id)}
+                    >
+                      Delete
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <pre className="whitespace-pre-wrap font-sans text-sm text-zinc-700 leading-relaxed">
+                      {report.content}
+                    </pre>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
