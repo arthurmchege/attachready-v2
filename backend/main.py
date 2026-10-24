@@ -1,17 +1,25 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 import PyPDF2
 import os
 from dotenv import load_dotenv
 import io
+from sqlalchemy.orm import Session
 
-# Load the Gemini API key securely
+# Import our new database files
+import models
+from database import engine, SessionLocal
+
+# Load environment variables
 load_dotenv()
+
+# Create the database tables automatically when the server starts
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# SECURITY: Allow our Next.js frontend (port 3000) to talk to this API (port 8000)
+# SECURITY: Allow our Next.js frontend to talk to this API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -23,19 +31,26 @@ app.add_middleware(
 # Initialize official Gemini SDK
 client = genai.Client()
 
+# Dependency to get the database session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.post("/api/assess")
 async def assess(
     target_role: str = Form(...),
     course: str = Form(...),
     skills: str = Form(""),
-    cv_upload: UploadFile = File(None)
+    cv_upload: UploadFile = File(None),
+    db: Session = Depends(get_db) # Inject the database session
 ):
     extracted_text = ""
     
-    # 1. Handle the new PDF Upload feature
     if cv_upload and cv_upload.filename.endswith('.pdf'):
         try:
-            # Read the PDF directly from memory (no saving to disk required!)
             contents = await cv_upload.read()
             pdf_reader = PyPDF2.PdfReader(io.BytesIO(contents))
             for page in pdf_reader.pages:
@@ -43,10 +58,8 @@ async def assess(
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error parsing PDF: {str(e)}")
 
-    # 2. Combine PDF text with any manually typed skills
     final_context = f"Manual Skills: {skills}\nExtracted CV Text: {extracted_text}"
 
-    # 3. Construct the prompt
     prompt = f"""
     You are an expert career advisor for TVET students.
     Student Course: {course}
@@ -68,12 +81,22 @@ async def assess(
     """
 
     try:
-        # 4. Call Gemini
         response = client.models.generate_content(
             model='gemini-3.5-flash-lite',
             contents=prompt
         )
-        # FastAPI automatically converts dictionaries to JSON!
-        return {"report": response.text}
+        
+        # Save the generated report to the database!
+        db_report = models.Report(
+            target_role=target_role,
+            course=course,
+            skills=skills,
+            report_content=response.text
+        )
+        db.add(db_report)
+        db.commit()
+        db.refresh(db_report)
+
+        return {"report": response.text, "id": db_report.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
