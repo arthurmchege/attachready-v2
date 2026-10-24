@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Trash2, Loader2 } from "lucide-react"; // <-- NEW IMPORT
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 
 // Define the structure of our saved reports
 interface Report {
@@ -322,13 +323,54 @@ export default function Home() {
 
               {/* Display Result directly below form temporarily */}
               {result && (
-                <div className="mt-8 p-6 bg-zinc-50 border-l-4 border-teal-600 rounded-r-xl">
-                  <h3 className="font-bold text-xl mb-4">
-                    Your Readiness Report
+                <div className="mt-8 p-6 bg-zinc-50 border-l-4 border-teal-600 rounded-r-xl shadow-sm">
+                  <h3 className="font-bold text-xl mb-6 text-zinc-900">
+                    Your AI Readiness Report
                   </h3>
-                  <pre className="whitespace-pre-wrap font-sans text-zinc-700 leading-relaxed">
-                    {result}
-                  </pre>
+                  <div className="font-sans">
+                    <ReactMarkdown
+                      components={{
+                        h2: ({ node, ...props }) => (
+                          <h2
+                            className="text-xl font-bold text-teal-800 mt-8 mb-4 border-b border-teal-100 pb-2"
+                            {...props}
+                          />
+                        ),
+                        h3: ({ node, ...props }) => (
+                          <h3
+                            className="text-lg font-bold text-zinc-900 mt-6 mb-3"
+                            {...props}
+                          />
+                        ),
+                        ul: ({ node, ...props }) => (
+                          <ul
+                            className="list-disc pl-5 space-y-2 mb-6"
+                            {...props}
+                          />
+                        ),
+                        li: ({ node, ...props }) => (
+                          <li
+                            className="text-zinc-700 leading-relaxed marker:text-teal-500"
+                            {...props}
+                          />
+                        ),
+                        p: ({ node, ...props }) => (
+                          <p
+                            className="mb-4 text-zinc-700 leading-relaxed"
+                            {...props}
+                          />
+                        ),
+                        strong: ({ node, ...props }) => (
+                          <strong
+                            className="font-semibold text-zinc-900 bg-teal-50 px-1 rounded"
+                            {...props}
+                          />
+                        ),
+                      }}
+                    >
+                      {result}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
             </CardContent>

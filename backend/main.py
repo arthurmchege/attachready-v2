@@ -48,17 +48,23 @@ async def assess(
 
     # 3. Construct the prompt
     prompt = f"""
-    You are a career advisor for TVET students.
+    You are an expert career advisor for TVET students.
     Student Course: {course}
     Target Role: {target_role}
     Background Context (Skills/CV): {final_context}
 
-    Provide a structured readiness report containing:
-    1. Strengths
-    2. Potential Skill Gaps
-    3. A 3-step actionable preparation plan.
+    Provide a highly structured readiness report containing:
+    1. A brief executive summary.
+    2. Key Strengths (bullet points).
+    3. Potential Skill Gaps (bullet points).
+    4. A 3-Step Actionable Preparation Plan.
     
-    Format the output in plain text with clear bullet points. Keep it professional.
+    CRITICAL INSTRUCTION: Format the output STRICTLY in Markdown. 
+    - Use ## for main headings and ### for subheadings.
+    - Use **bolding** for emphasis on key technologies or concepts.
+    - Use unordered lists (-) for all bullet points.
+    - Keep the tone encouraging, professional, and highly specific to the tech stack.
+    - Do NOT include a generic main title (like "# Readiness Report"), start directly with the content.
     """
 
     try:
