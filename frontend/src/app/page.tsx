@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Trash2 } from "lucide-react"; // <-- NEW IMPORT
+import { motion } from "framer-motion";
 
 // Define the structure of our saved reports
 interface Report {
@@ -145,16 +146,70 @@ export default function Home() {
 
       <main className="max-w-4xl mx-auto px-6 py-16 md:py-24 space-y-16">
         {/* Hero Section */}
-        <section className="text-center space-y-6">
-          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-zinc-900 leading-tight">
-            Land Your Dream <br className="hidden md:block" /> Industrial
-            Attachment.
-          </h1>
-          <p className="text-lg md:text-xl text-zinc-600 max-w-2xl mx-auto leading-relaxed">
+        <section className="text-center space-y-6 flex flex-col items-center pt-8 pb-12">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <span className="inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-600/20 mb-6 shadow-sm">
+              ✨ Powered by Google Gemini 3.5 Flash
+            </span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 leading-[1.1]"
+          >
+            Land Your Dream <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-600">
+              Industrial Attachment.
+            </span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-lg md:text-xl text-zinc-600 max-w-2xl mx-auto leading-relaxed"
+          >
             Upload your CV or paste your skills. Our AI instantly analyzes your
             profile, identifies skill gaps, and generates a personalized 3-step
             action plan to get you hired.
-          </p>
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="flex flex-col sm:flex-row justify-center gap-4 pt-8"
+          >
+            <Button
+              size="lg"
+              className="bg-teal-600 hover:bg-teal-700 text-white rounded-full px-8 text-md h-12 shadow-md hover:shadow-lg transition-all"
+              onClick={() =>
+                document
+                  .getElementById("assessment")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+            >
+              Analyze My Readiness
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="rounded-full px-8 text-md h-12 border-zinc-300 hover:bg-zinc-100 transition-all"
+              onClick={() =>
+                document
+                  .getElementById("assessment")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+            >
+              Start Free Assessment
+            </Button>
+          </motion.div>
         </section>
 
         {/* Assessment Form Card */}
