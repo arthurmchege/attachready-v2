@@ -409,24 +409,25 @@ export default function Home() {
         open={!!selectedReport}
         onOpenChange={(open) => !open && setSelectedReport(null)}
       >
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white sm:rounded-2xl p-0">
-          <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <DialogTitle className="text-2xl font-bold text-zinc-900">
+        {/* Added sm:max-w-4xl and w-[90vw] to make it wide but comfortable */}
+        <DialogContent className="sm:max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto bg-white sm:rounded-2xl p-0">
+          <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="pr-8">
+              <DialogTitle className="text-2xl font-bold text-zinc-900 leading-tight">
                 {selectedReport?.targetRole}
               </DialogTitle>
               <DialogDescription className="mt-1 text-sm text-zinc-500">
                 Generated on {selectedReport?.date}
               </DialogDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 className="text-teal-700 border-teal-200 hover:bg-teal-50"
                 onClick={() => selectedReport && downloadPDF(selectedReport)}
               >
-                <Download className="w-4 h-4 mr-2" /> Export
+                <Download className="w-4 h-4 mr-2" /> Export PDF
               </Button>
               <Button
                 variant="ghost"
@@ -441,7 +442,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="px-6 md:px-10 pb-10">
+          <div className="px-6 md:px-12 pb-12 pt-4">
             {selectedReport && (
               <MarkdownRenderer content={selectedReport.content} />
             )}
