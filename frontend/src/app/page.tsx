@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Download, Trash2, Loader2 } from "lucide-react"; // <-- NEW IMPORT
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+import { marked } from "marked";
 
 // Define the structure of our saved reports
 interface Report {
@@ -101,6 +102,9 @@ export default function Home() {
   };
 
   const downloadPDF = (report: Report) => {
+    // Convert the raw markdown string into formatted HTML
+    const htmlContent = marked.parse(report.content) as string;
+
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(`
@@ -109,19 +113,32 @@ export default function Home() {
             <title>AttachReady Report - ${report.targetRole}</title>
             <style>
               body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #18181b; max-width: 800px; margin: 0 auto; padding: 40px; }
-              h1 { color: #0f766e; margin-bottom: 5px; }
-              h2 { color: #27272a; margin-top: 0; }
-              .date { color: #71717a; font-size: 0.9rem; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e4e4e7; }
-              pre { font-family: inherit; white-space: pre-wrap; font-size: 0.95rem; }
+              h1 { color: #0f766e; margin-bottom: 5px; font-size: 28px; }
+              .header-meta { color: #71717a; font-size: 0.95rem; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e4e4e7; }
+              
+              /* Markdown HTML Styles */
+              h2 { color: #0f766e; margin-top: 32px; margin-bottom: 16px; font-size: 20px; border-bottom: 1px solid #ccfbf1; padding-bottom: 8px; }
+              h3 { color: #18181b; margin-top: 24px; margin-bottom: 12px; font-size: 18px; }
+              p { margin-bottom: 16px; color: #3f3f46; }
+              ul { margin-bottom: 24px; padding-left: 24px; }
+              li { margin-bottom: 8px; color: #3f3f46; }
+              strong { color: #18181b; font-weight: 600; background-color: #f0fdfa; padding: 2px 4px; border-radius: 4px; }
             </style>
           </head>
           <body>
             <h1>AttachReady Readiness Report</h1>
-            <h2>Target Role: ${report.targetRole}</h2>
-            <div class="date">Generated on: ${report.date}</div>
-            <pre>${report.content}</pre>
+            <div class="header-meta">
+              Target Role: <strong>${report.targetRole}</strong><br>
+              Generated on: ${report.date}
+            </div>
+            <div class="report-content">
+              ${htmlContent}
+            </div>
             <script>
-              window.onload = () => { window.print(); window.close(); }
+              // Slight delay to ensure CSS is fully painted before opening print dialog
+              window.onload = () => { 
+                setTimeout(() => { window.print(); window.close(); }, 250); 
+              }
             </script>
           </body>
         </html>
