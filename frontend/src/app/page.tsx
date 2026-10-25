@@ -36,11 +36,13 @@ export default function Home() {
   const [result, setResult] = useState("");
   const [history, setHistory] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
   // NEW: Fetch history directly from the FastAPI database
   const fetchHistory = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/history");
+      const response = await fetch(`${API_BASE_URL}/api/history`);
       if (response.ok) {
         const data = await response.json();
         setHistory(data);
@@ -77,7 +79,7 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/assess", {
+      const response = await fetch(`${API_BASE_URL}/api/assess`, {
         method: "POST",
         body: formData,
       });
@@ -103,7 +105,7 @@ export default function Home() {
   // NEW: Delete the report directly from the database
   const deleteReport = async (id: string) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/reports/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/reports/${id}`, {
         method: "DELETE",
       });
 
