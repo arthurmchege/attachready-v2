@@ -36,8 +36,7 @@ export default function Home() {
   const [result, setResult] = useState("");
   const [history, setHistory] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+  const API_BASE_URL = "https://attachready-api.onrender.com";
 
   // NEW: Fetch history directly from the FastAPI database
   const fetchHistory = async () => {
